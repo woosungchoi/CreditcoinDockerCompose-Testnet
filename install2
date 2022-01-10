@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "setup" ]; then
+  echo 'extracting snapshot...' \
+  && sudo rm -f /var/lib/docker/volumes/server_validator-testblock-volume/_data/* \
+  && sudo tar -I pigz -xvf snapshot.tar.gz -P /var/lib/docker/volumes/server_validator-testblock-volume/ \
+  && cd && cd CreditcoinDockerCompose-2.0 \
+  && sudo docker-compose -f ./Server/docker-compose.yaml up -d \
+  && sudo docker-compose -f ./Client/docker-compose.yaml up -d \
+  && sudo docker exec -it creditcoin-client-testnet ./ccclient sighash \
+  && echo 'Above text is your sighash' \
+  && read -p "Do you want change wallet? (ex. y or n) : " CHANGE_WALLET \
+  && if [ "$CHANGE_WALLET" == "y" ]; then
+            read -p "Input your CTC PRIVATE KEY : " CTC_PRIVKEY2 \
+            && read -p "Input your CTC PUBLIC KEY : " CTC_PUBKEY \
+            && sudo docker exec -it sawtooth-validator-testnet bash -c "echo $CTC_PRIVKEY2 > /etc/sawtooth/keys/validator.priv" \
+            && sudo docker exec -it sawtooth-validator-testnet bash -c "echo $CTC_PUBKEY > /etc/sawtooth/keys/validator.pub" \
+            && echo 'Restarting CTC Server...' \
+            && sudo docker-compose -f ./Server/docker-compose.yaml down \
+            && sudo docker-compose -f ./Server/docker-compose.yaml up -d
+     fi
+  echo 'Done! 🎉' \
+  && echo 'by Woosung Choi' \
+  && echo 'Below is a list of containers.'\
+  && sudo docker ps
+fi
